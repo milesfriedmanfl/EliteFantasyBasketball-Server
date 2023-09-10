@@ -1,0 +1,10 @@
+api_gateway_path_part = "/desired-api-root-name"
+aws_region = "us-west-2"
+vpc_cidr_block_range="10.1.0.0/16"
+vpc_public_subnet_cidr_block_range="10.1.1.0/24"
+vpc_private_subnet_cidr_block_range="10.1.2.0/24"
+vpc_client_vpn_endpoint_cidr_block_range="10.1.4.0/22"
+security_group_client_vpn_access_cidr_block = "" # your home machine IP address
+client_vpn_endpoint_server_certificate_arn = "" # this can be left blank as it will be filled in for you via script
+client_vpn_endpoint_root_certificate_arn = "" # this can be left blank as it will be filled in for you via script
+dynamo_db_yahoo_oauth_table_name = "existing-dynamodb-table-name-holding-yahoo-oauth-credentials"
