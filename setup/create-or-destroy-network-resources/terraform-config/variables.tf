@@ -6,7 +6,11 @@ variable "aws_region" {
   description = "The AWS region which your provisioned resources will be deployed to."
 }
 
-variable "security_group_client_vpn_access_cidr_block" {
+variable "aws_lb_region_code" {
+  description = "The ID of an elastic load balancer region. Used for setting up policy permissions"
+}
+
+variable "client_vpn_access_cidr_block" {
   description = "The cidr block defining the IP address allowed to access the provisioned client vpn endpoint."
 }
 
@@ -36,4 +40,12 @@ variable "vpc_private_subnet_cidr_block_range" {
 
 variable "vpc_client_vpn_endpoint_cidr_block_range" {
   description = "The cidr block range used by your client vpn endpoint. This must lie within the range of your VPC and not overlap with the private subnet range or private subnet range. If unsure, please use the .tfvarexamples file as a starting point."
+}
+
+variable "ec2_ssh_user" {
+  description = "The username of the user that will be used to ssh into the ec2 server"
+}
+
+variable "ec2_ssh_pass" {
+  description = "The password of the user that will be used to ssh into the ec2 server"
 }

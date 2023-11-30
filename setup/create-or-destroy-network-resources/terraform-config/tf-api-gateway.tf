@@ -4,7 +4,11 @@ resource "aws_api_gateway_account" "account_with_logging" {
 
 resource "aws_cloudwatch_log_group" "api_gateway_log_group" {
   name = "/tf/fb/log/api-gateway"
-#  retention_in_days = 14
+}
+
+resource "aws_api_gateway_vpc_link" "fb_api_gw_vpc_link" {
+  name        = "tf-fb-api-gw-vpc-link"
+  target_arns = [aws_lb.private_ec2_lb.arn]
 }
 
 resource "aws_api_gateway_rest_api" "fb_rest_api" {
@@ -30,16 +34,15 @@ resource "aws_api_gateway_integration" "fb_league_commands_post_integration_for_
   http_method             = aws_api_gateway_method.fb_league_commands_post.http_method
   integration_http_method = "POST"
   type                    = "HTTP"
-  uri                     = "https://${aws_api_gateway_rest_api.fb_rest_api.id}.execute-api.${var.aws_region}.amazonaws.com/prod"
+  uri = "http://${aws_lb.private_ec2_lb.dns_name}:3000/${var.api_gateway_path_part}"
+  connection_type = "VPC_LINK"
+  connection_id   = aws_api_gateway_vpc_link.fb_api_gw_vpc_link.id
 
   depends_on = [
     aws_vpc_endpoint.api_gateway_endpoint,
     aws_api_gateway_rest_api.fb_rest_api,
     aws_api_gateway_resource.fb_league_commands,
-    aws_api_gateway_method.fb_league_commands_post,
-#    aws_api_gateway_deployment.deployment_prod,
-#    aws_api_gateway_stage.stage_prod,
-#    aws_api_gateway_method_settings.fb_league_commands_post_settings_for_prod
+    aws_api_gateway_method.fb_league_commands_post
   ]
 
   ##  See http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
@@ -101,16 +104,15 @@ resource "aws_api_gateway_integration" "fb_league_commands_post_integration_for_
   http_method             = aws_api_gateway_method.fb_league_commands_post.http_method
   integration_http_method = "POST"
   type                    = "HTTP"
-  uri                     = "https://${aws_api_gateway_rest_api.fb_rest_api.id}.execute-api.${var.aws_region}.amazonaws.com/dev"
+  uri = "http://${aws_lb.private_ec2_lb.dns_name}:3000/${var.api_gateway_path_part}"
+  connection_type = "VPC_LINK"
+  connection_id   = aws_api_gateway_vpc_link.fb_api_gw_vpc_link.id
 
   depends_on = [
     aws_vpc_endpoint.api_gateway_endpoint,
     aws_api_gateway_rest_api.fb_rest_api,
     aws_api_gateway_resource.fb_league_commands,
-    aws_api_gateway_method.fb_league_commands_post,
-#    aws_api_gateway_deployment.deployment_dev,
-#    aws_api_gateway_stage.stage_dev,
-#    aws_api_gateway_method_settings.fb_league_commands_post_settings_for_dev
+    aws_api_gateway_method.fb_league_commands_post
   ]
 
   ##  See http://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
@@ -278,12 +280,6 @@ resource "aws_api_gateway_deployment" "deployment_prod" {
       aws_api_gateway_integration_response.fb_league_commands_integration_response_500
     ]))
   }
-
-  #  depends_on = [
-  #    aws_api_gateway_rest_api.fb_rest_api,
-  #    aws_api_gateway_resource.fb_league_commands,
-  #    aws_api_gateway_method.fb_league_commands_post
-  #  ]
 }
 
 resource "aws_api_gateway_deployment" "deployment_dev" {
@@ -312,12 +308,6 @@ resource "aws_api_gateway_deployment" "deployment_dev" {
       aws_api_gateway_integration_response.fb_league_commands_integration_response_500
     ]))
   }
-
-  #  depends_on = [
-  #    aws_api_gateway_rest_api.fb_rest_api,
-  #    aws_api_gateway_resource.fb_league_commands,
-  #    aws_api_gateway_method.fb_league_commands_post
-  #  ]
 }
 
 resource "aws_api_gateway_stage" "stage_prod" {
