@@ -157,6 +157,8 @@ resource "aws_vpc_endpoint" "api_gateway_endpoint" {
 resource "aws_vpc_endpoint" "dynamodb_endpoint" {
   vpc_id             = aws_vpc.vpc-1.id
   service_name       = "com.amazonaws.${var.aws_region}.dynamodb"
+#  vpc_endpoint_type = "Interface"
+#  subnet_ids = [aws_subnet.private-subnet-2b.id]
 }
 
 ## Internet Gateway

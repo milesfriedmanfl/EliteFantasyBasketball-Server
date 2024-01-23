@@ -90,6 +90,11 @@ resource "aws_iam_role_policy_attachment" "nlb_access_logs_attachment" {
   role       = aws_iam_role.nlb_ec2_role.name
 }
 
+resource "aws_iam_role_policy_attachment" "nlb_dynamodb_access_attachment" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+  role       = aws_iam_role.nlb_ec2_role.name
+}
+
 resource "aws_s3_bucket_policy" "nlb_access_logs_bucket_policy" {
   bucket = aws_s3_bucket.nlb_access_logs_bucket.bucket
   depends_on=[aws_s3_bucket.nlb_access_logs_bucket]
