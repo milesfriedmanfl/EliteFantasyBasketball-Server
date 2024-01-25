@@ -37,7 +37,7 @@ export abstract class Logger extends Singleton {
     private readonly _logName;
     private readonly _logger;
 
-    private constructor(fileName: string = "server-log.txt", levelOverride?: LogLevel) {
+    private constructor(fileName: string = "server.log", levelOverride?: LogLevel) {
         super();
 
         this._logName = fileName.trim();

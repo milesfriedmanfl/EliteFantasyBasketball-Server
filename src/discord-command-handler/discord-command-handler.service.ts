@@ -1,10 +1,11 @@
+import {Injectable} from "@nestjs/common";
 import { InteractionType, InteractionResponseType, verifyKey } from 'discord-interactions';
 import * as path from 'path';
 import * as fs from 'fs';
 import {Singleton} from "../utils/singleton.js";
 import {LoggerDelegate} from "../utils/logger/logger-delegate.js";
 import type {Subject} from "rxjs";
-import {DeferredResponseHandler} from "../deferred-response-handler/deferred-response-handler.js";
+import {DeferredResponseHandlerService} from "../deferred-response-handler/deferred-response-handler.service.js";
 import {fileURLToPath} from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,15 +14,14 @@ const __dirname = path.dirname(__filename);
 /**
  * Used to parse command files and route requests to the correct command execute function
  */
-export class DiscordCommandHandler extends Singleton {
+@Injectable()
+export class DiscordCommandHandlerService {
     private readonly _logger: LoggerDelegate;
     private readonly _handleDeferredResponse$: Subject<any>;
 
-    private constructor() {
-        super();
-
-        this._logger = new LoggerDelegate(DiscordCommandHandler.name);
-        this._handleDeferredResponse$ = (DeferredResponseHandler.Instance as DeferredResponseHandler).handleDeferredResponse$;
+    constructor(private readonly _deferredResponseHandlerService: DeferredResponseHandlerService) {
+        this._logger = new LoggerDelegate(DiscordCommandHandlerService.name);
+        this._handleDeferredResponse$ = this._deferredResponseHandlerService.handleDeferredResponse$;
     }
 
     /**

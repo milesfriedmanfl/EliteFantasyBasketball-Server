@@ -36,7 +36,7 @@ resource "aws_subnet" "private-subnet-2b" {
 resource "aws_iam_instance_profile" "nlb_ec2_profile" {
   name = "nlb-ec2-profile"
 
-  role = aws_iam_role.nlb_ec2_role.name
+  role = aws_iam_role.ec2_role.name
 }
 
 resource "aws_instance" "ec2-2a-private" {
@@ -157,8 +157,6 @@ resource "aws_vpc_endpoint" "api_gateway_endpoint" {
 resource "aws_vpc_endpoint" "dynamodb_endpoint" {
   vpc_id             = aws_vpc.vpc-1.id
   service_name       = "com.amazonaws.${var.aws_region}.dynamodb"
-#  vpc_endpoint_type = "Interface"
-#  subnet_ids = [aws_subnet.private-subnet-2b.id]
 }
 
 ## Internet Gateway
@@ -190,40 +188,6 @@ resource "aws_nat_gateway" "nat_gateway" {
   }
 
   depends_on = [aws_internet_gateway.internet-gateway]
-}
-
-## S3 Bucket for NLB Access Logs
-resource "aws_s3_bucket" "nlb_access_logs_bucket" {
-  bucket = "tf-nlb-access-log-bucket"
-#  region = var.aws_region
-
-  tags = {
-    Name = "tf-nlb-access-logs-bucket"
-  }
-}
-
-resource "aws_s3_bucket_ownership_controls" "nlb_bucket_ownership_controls" {
-  bucket = aws_s3_bucket.nlb_access_logs_bucket.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
-  }
-  depends_on = [aws_s3_bucket_public_access_block.nlb_bucket_public_access_block]
-}
-
-resource "aws_s3_bucket_public_access_block" "nlb_bucket_public_access_block" {
-  bucket = aws_s3_bucket.nlb_access_logs_bucket.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_acl" "nlb_access_bucket_acl" {
-  depends_on = [aws_s3_bucket_ownership_controls.nlb_bucket_ownership_controls]
-
-  bucket = aws_s3_bucket.nlb_access_logs_bucket.id
-  acl    = "private"
 }
 
 ## Load Balancer
@@ -259,16 +223,9 @@ resource "aws_lb" "private_ec2_lb" {
     aws_subnet.private-subnet-2b.id
   ]
 
-  access_logs {
-    bucket  = aws_s3_bucket.nlb_access_logs_bucket.id
-    enabled = true
-  }
-
   tags = {
     Name = "tf-fb-lb"
   }
-
-  depends_on = [aws_s3_bucket_policy.nlb_access_logs_bucket_policy]
 }
 
 resource "aws_lb_listener" "private_ec2_lb_listener" {

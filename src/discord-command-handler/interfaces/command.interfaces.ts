@@ -3,7 +3,7 @@ export interface CommandMetadata {
     description: string;
 }
 
-export interface Command {
+export interface CommandInterfaces {
     metadata: CommandMetadata;
     execute: (string, Subject?) => any;
 }

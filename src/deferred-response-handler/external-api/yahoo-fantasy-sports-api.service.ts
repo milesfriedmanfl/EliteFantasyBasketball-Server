@@ -1,12 +1,17 @@
-import { xml2js, xml2json } from "xml-js";
+import { xml2js } from "xml-js";
+import {Injectable} from "@nestjs/common";
 import fetch from 'node-fetch';
 import {LoggerDelegate} from "../../utils/logger/logger-delegate.js";
 
-export class YahooFantasySportsApi {
+/**
+ * Used to fetch data from the yahoo fantasy sports api
+ */
+@Injectable()
+export class YahooFantasySportsApiService {
     private readonly _logger: LoggerDelegate;
 
     public constructor() {
-        this._logger = new LoggerDelegate(YahooFantasySportsApi.name);
+        this._logger = new LoggerDelegate(YahooFantasySportsApiService.name);
     }
 
     /**

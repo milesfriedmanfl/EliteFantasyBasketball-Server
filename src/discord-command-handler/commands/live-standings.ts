@@ -1,9 +1,9 @@
 import { InteractionResponseType } from 'discord-interactions';
-import {AsyncCommand} from "../../deferred-response-handler/deferred-response-handler.js";
+import {AsyncCommand} from "../../deferred-response-handler/deferred-response-handler.service.js";
 import type {Subject} from "rxjs";
 import type {
     DeferredCommand
-} from "../../deferred-response-handler/command-handlers/interfaces/command-handler-interfaces.js";
+} from "../../deferred-response-handler/command-handlers/interfaces/command-handler.interfaces.js";
 
 export default abstract class LiveStandings {
     public static metadata = {

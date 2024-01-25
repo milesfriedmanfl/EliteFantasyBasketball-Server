@@ -1,19 +1,23 @@
+import { Injectable } from '@nestjs/common';
 import fetch from "node-fetch";
 import { from, take, switchMap, catchError, combineLatest, of } from 'rxjs';
 import {LoggerDelegate} from "../../utils/logger/logger-delegate.js";
 import {WebComponentToImageBuilder} from "../web-component-to-image-builder/web-component-to-image-builder.js";
-import {YahooOauth} from '../dynamodb/yahoo-oauth.js';
-import {YahooFantasySportsApi} from "../external-api/yahoo-fantasy-sports-api.js";
-import type {AsyncCommandHandler} from "./interfaces/command-handler-interfaces.js";
+import {YahooOauthService} from '../dynamodb/yahoo-oauth.service.js';
+import {YahooFantasySportsApiService} from "../external-api/yahoo-fantasy-sports-api.service.js";
+import type {AsyncCommandHandler} from "./interfaces/command-handler.interfaces.js";
+import type {YahooOauthCredentials} from "../dynamodb/interfaces/dynamodb.interfaces.js";
 import crypto from 'crypto';
 
-export class LiveStandingsHandler implements AsyncCommandHandler {
+@Injectable()
+export class LiveStandingsHandlerService implements AsyncCommandHandler {
     private readonly _logger: LoggerDelegate;
-    private readonly _yahooFantasySportsApi: YahooFantasySportsApi;
     
-    public constructor() {
-        this._logger = new LoggerDelegate(LiveStandingsHandler.name);
-        this._yahooFantasySportsApi = new YahooFantasySportsApi();
+    public constructor(
+        private readonly _yahooFantasySportsApi: YahooFantasySportsApiService,
+        private readonly _yahooOauthService: YahooOauthService
+    ) {
+        this._logger = new LoggerDelegate(LiveStandingsHandlerService.name);
     }
 
     /**
@@ -37,7 +41,7 @@ export class LiveStandingsHandler implements AsyncCommandHandler {
 
         try {
             const liveStandingsProps = { liveStandingsAsJSON: JSON.stringify(liveStandings) };
-            this._logger.debug(`stringifiedProps = ${liveStandingsProps}`);
+            this._logger.debug(`stringifiedProps = ${JSON.stringify(liveStandingsProps)}`);
             const liveStandingsImageBuilder = await new WebComponentToImageBuilder(
                 'LiveStandings.svelte',
                 liveStandingsProps,
@@ -143,7 +147,7 @@ export class LiveStandingsHandler implements AsyncCommandHandler {
         // Retrieve current oauth credentials and check validity
         // const getCredentialsResponse = await yahooOauthDatabaseTable.getYahooOauthCredentials();
         this._logger.info('Fetching credentials from db...');
-        const getCredentialsResponse = await YahooOauth.getCredentials();
+        const getCredentialsResponse = await this._yahooOauthService.getCredentials();
         const currentOauthCredentials = (getCredentialsResponse) ? getCredentialsResponse.result : null;
         this._logger.debug(`currentOauthCredentials = ${JSON.stringify(currentOauthCredentials)}`);
 
@@ -167,14 +171,14 @@ export class LiveStandingsHandler implements AsyncCommandHandler {
             this._logger.info(`Refreshed credentials. Saving new credentials...`);
 
             // Save new credentials
-            const newCredentials = {
+            const newCredentials: YahooOauthCredentials = {
                 id: '0', // The database will only ever have one row. All requests under the same app-level auth. So always use 0
                 token_time_seconds: currentTimeInSeconds,
                 consumer_key: currentOauthCredentials.consumer_key,
                 consumer_secret: currentOauthCredentials.consumer_secret,
                 ...refreshResponseObj
             }
-            const {status, result} = await YahooOauth.setCredentials(newCredentials);
+            const {status, result} = await this._yahooOauthService.setCredentials(newCredentials);
             this._logger.info(`Credentials saved in dynamodb: status = ${status}, result = ${JSON.stringify(result)}`);
 
             // Return new access_token
@@ -419,7 +423,7 @@ export class LiveStandingsHandler implements AsyncCommandHandler {
                         for (let [teamKey, teamValues] of Object.entries(liveStandings)) {
                             const wins = (teamValues as any).wins; // TODO -- replace any with an interface
                             const ties = (teamValues as any).ties; // TODO -- replace any with an interface
-                            const winPercentage = (wins + (ties * .5)) / 1; // yahoo formula for win percentage
+                            const winPercentage = (Number(wins) + (Number(ties) * .5)); // yahoo formula for win percentage
                             liveStandings[teamKey].winPercentage = winPercentage;
 
                             // Storing all teams that have the same win percentage in an array linked to that win percentage.

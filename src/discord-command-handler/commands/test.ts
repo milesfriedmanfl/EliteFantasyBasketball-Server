@@ -1,7 +1,7 @@
 import { InteractionResponseType } from 'discord-interactions';
-import type {Command} from "../interfaces/command.js";
+import type {CommandInterfaces} from "../interfaces/command.interfaces.js";
 
-export class Test implements Command  {
+export class Test implements CommandInterfaces  {
     public metadata: {
         name: 'test',
         description: 'a test command',
