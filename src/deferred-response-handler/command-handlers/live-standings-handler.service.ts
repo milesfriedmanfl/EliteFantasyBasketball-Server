@@ -1,23 +1,26 @@
-import { Injectable } from '@nestjs/common';
 import fetch from "node-fetch";
+import crypto from 'crypto';
 import { from, take, switchMap, catchError, combineLatest, of } from 'rxjs';
-import {LoggerDelegate} from "../../utils/logger/logger-delegate.js";
+import { Injectable } from '@nestjs/common';
 import {WebComponentToImageBuilder} from "../web-component-to-image-builder/web-component-to-image-builder.js";
 import {YahooOauthService} from '../dynamodb/yahoo-oauth.service.js';
 import {YahooFantasySportsApiService} from "../external-api/yahoo-fantasy-sports-api.service.js";
+import {
+    YAHOO_FANTASY_BASKETBALL_CATEGORY_IDS,
+    YahooFantasySportsDataCrawler
+} from "./utils/yahoo-fantasy-sports-data-crawler.js";
 import type {AsyncCommandHandler} from "./interfaces/command-handler.interfaces.js";
-import type {YahooOauthCredentials} from "../dynamodb/interfaces/dynamodb.interfaces.js";
-import crypto from 'crypto';
 
+/**
+ * Handles traversing yahoo fantasy sports data and building the live standings response to update a discord slash command output
+ */
 @Injectable()
-export class LiveStandingsHandlerService implements AsyncCommandHandler {
-    private readonly _logger: LoggerDelegate;
-    
+export class LiveStandingsHandlerService extends YahooFantasySportsDataCrawler implements AsyncCommandHandler {
     public constructor(
-        private readonly _yahooFantasySportsApi: YahooFantasySportsApiService,
-        private readonly _yahooOauthService: YahooOauthService
+        protected readonly _yahooFantasySportsApi: YahooFantasySportsApiService,
+        protected readonly _yahooOauthService: YahooOauthService
     ) {
-        this._logger = new LoggerDelegate(LiveStandingsHandlerService.name);
+        super(LiveStandingsHandlerService.name, _yahooOauthService, _yahooFantasySportsApi);
     }
 
     /**
@@ -114,194 +117,6 @@ export class LiveStandingsHandlerService implements AsyncCommandHandler {
         } catch (e) {
             this._logger.error(`Deferred interaction response failed with error: ${e}`);
         }
-    }
-    
-    /**
-     * Traverses a passed object for the field of interest and returns the value of that field. If this is an object then an object will be returned,
-     * but this is meant to be used to find terminal values in the large tree of yahoo fantasy sports api return data.
-     *
-     * Returns null if the field was not found and logs an error.
-     *
-     * @Param objectName - the name of the object for logging purposes
-     * @Param jsObject - the object to traverse
-     * @Param fieldPath - an array representing the path from the root of the object to the field in question
-     */
-    private traversePath(objectName, jsObject, fieldPath) {
-        return fieldPath.reduce((objectNode, field) => {
-            // Traverse the object tree checking for null at each field node and returning an object that uses that field sub-object
-            // as the root until we reach the current_week.
-            if (!objectNode) {
-                this._logger.error(`Error in this.traversePath(): Unable to locate ${JSON.stringify(fieldPath)} in ${objectName} object!`);
-                return null;
-            }
-            return (objectNode[field]) ? objectNode[field] : null;
-        }, jsObject);
-    }
-
-    /**
-     * Goes through the process of authorizing with the yahoo api using oauth credentials, refreshing the credentials if they are close to or past expiry as needed
-     */
-    private async getYahooAccessToken() {
-        this._logger.debug('Entered getYahooAccessToken()');
-        
-        // Retrieve current oauth credentials and check validity
-        // const getCredentialsResponse = await yahooOauthDatabaseTable.getYahooOauthCredentials();
-        this._logger.info('Fetching credentials from db...');
-        const getCredentialsResponse = await this._yahooOauthService.getCredentials();
-        const currentOauthCredentials = (getCredentialsResponse) ? getCredentialsResponse.result : null;
-        this._logger.debug(`currentOauthCredentials = ${JSON.stringify(currentOauthCredentials)}`);
-
-        // If token is not valid then refresh it using the current stored credentials.
-        // To determine validity check the time for expiry.
-        // Assume the token is invalid if there is no time field in the current credentials.
-        const maxCredentialValidityPeriodInSeconds = 3600; // assume 3600 as the time a token is valid, as that is currently the case at the time of coding
-        const tokenTimeSeconds = currentOauthCredentials.token_time_seconds;
-        const currentTimeInSeconds = new Date().getTime() / 1000; // getTime() returns milliseconds so divide by 1000
-        const oneMinuteBeforeExpiry = (currentOauthCredentials.expires_in && currentOauthCredentials.expires_in > 60)
-            ? currentOauthCredentials.expires_in - 60 // seconds
-            : (maxCredentialValidityPeriodInSeconds - 60)
-        if (currentOauthCredentials &&
-            !tokenTimeSeconds || // if we don't have a timestamp assigned with our credentials (this is not added by calls by default so this should only be the case for calls made external to this code)
-            currentTimeInSeconds - tokenTimeSeconds > oneMinuteBeforeExpiry // token at, or close to expiry
-        ) {
-            this._logger.info(`Credentials at or close to expiry. Refreshing credentials...`);
-            // Refresh token
-            // TODO -- test output and make an interface to replace any
-            const refreshResponseObj: any = await this._yahooFantasySportsApi.refreshYahooOauthAccessToken(currentOauthCredentials);
-            this._logger.info(`Refreshed credentials. Saving new credentials...`);
-
-            // Save new credentials
-            const newCredentials: YahooOauthCredentials = {
-                id: '0', // The database will only ever have one row. All requests under the same app-level auth. So always use 0
-                token_time_seconds: currentTimeInSeconds,
-                consumer_key: currentOauthCredentials.consumer_key,
-                consumer_secret: currentOauthCredentials.consumer_secret,
-                ...refreshResponseObj
-            }
-            const {status, result} = await this._yahooOauthService.setCredentials(newCredentials);
-            this._logger.info(`Credentials saved in dynamodb: status = ${status}, result = ${JSON.stringify(result)}`);
-
-            // Return new access_token
-            return result.access_token
-        }
-
-        // Otherwise return current access_token
-        return currentOauthCredentials.access_token;
-    }
-
-    /**
-     * Calculates the current record for total count in a week for each category and returns an object that contains: (stat, record, record_holder)
-     */
-    public async calculateWeeklyTotalRecordHolders(access_token) {
-        this._logger.debug(`Entered calculateWeeklyTotalRecordHolders(): access_token = ${access_token}`);
-        
-        return new Promise(resolve => {
-            let currentWeek;
-            let startWeek;
-
-            // Make an initial request for scoreboard data to be able to see the current week
-            from(this._yahooFantasySportsApi.getLeagueScoreboard(access_token))
-                .pipe(
-                    take(1),
-                    // Then make a subsequent request for scoreboard data for all prior weeks
-                    switchMap(scoreboard => {
-                        // Check the current week and start week by traversing the scorboard object
-                        currentWeek = this.traversePath('scoreboard', scoreboard, ['fantasy_content', 'league', 'current_week', '_text']);
-                        startWeek = this.traversePath('scoreboard', scoreboard, ['fantasy_content', 'league', 'start_week', '_text']);
-
-                        // TODO -- this is repeated code, make it a function
-                        // Build the week specifier string containing all weeks prior to the current.
-                        // This will be the value for the weeks sub-resource query param
-                        let allPriorWeeksQueryParam = '';
-                        for (let weekNum = startWeek; weekNum < currentWeek; weekNum++) {
-                            allPriorWeeksQueryParam += (weekNum < currentWeek - 1)
-                                ? `${weekNum},`
-                                : `${weekNum}`;
-                        }
-                        // --------------------------------------------------
-                        // Make request for scoreboard data for all prior weeks than the current
-                        return from(this._yahooFantasySportsApi.getLeagueScoreboardByWeek(access_token, allPriorWeeksQueryParam));
-                    }),
-                    catchError(_ => {
-                        this._logger.error(`Api call to getLeagueScoreboard failed`);
-                        return 'ERROR';
-                    })
-                )
-                // Calculate weekly total record holders and return the structured object
-                .subscribe(scoreboardForAllPriorWeeks => {
-                    // Handle error if present
-                    if (scoreboardForAllPriorWeeks === 'ERROR') {
-                        resolve(null);
-                    }
-                    
-                    // Define categories to find weekly records for
-                    const categoryRecordsMetadata = {  // ignore efficiency cats
-                        [process.env.YAHOO_STAT_ID_THREES]: {
-                            name: 'threes',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        },
-                        [process.env.YAHOO_STAT_ID_POINTS]: {
-                            name: 'points',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        },
-                        [process.env.YAHOO_STAT_ID_REBOUNDS]: {
-                            name: 'rebounds',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        },
-                        [process.env.YAHOO_STAT_ID_ASSISTS]: {
-                            name: 'assists',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        },
-                        [process.env.YAHOO_STAT_ID_STEALS]: {
-                            name: 'steals',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        },
-                        [process.env.YAHOO_STAT_ID_BLOCKS]: {
-                            name: 'blocks',
-                            recordTotal: 0,
-                            recordHolder: null,
-                        }
-                    }
-                    const matchups =
-                        this.traversePath('scoreboardForAllPriorWeeks', scoreboardForAllPriorWeeks, ['fantasy_content', 'league', 'scoreboard', 'matchups', 'matchup']);
-
-                    // Iterate over each matchup in the scoreboard to find the records per category in a week
-                    matchups.forEach(matchup => {
-                        const matchupWeek = this.traversePath('matchup', matchup, ['week', '_text']);
-                        
-                        if (matchup && matchupWeek < Number(currentWeek)) { // exclude current week in record calculations
-                            const teams = this.traversePath('matchup', matchup, ['teams', 'team']);
-                            teams.forEach(team => {
-                                
-                                const teamName = this.traversePath('team', team, ['name', '_text']);
-                                const teamStatsForMatchup = this.traversePath('team', team, ['team_stats', 'stats', 'stat']);
-                                
-                                teamStatsForMatchup.forEach(teamStat => {
-                                    const statId = this.traversePath('teamStat', teamStat, ['stat_id', '_text']);
-                                    const statValue = this.traversePath('teamStat', teamStat, ['value', '_text']);
-                                    // this._logger.debug(`checking statId ${statId} with value ${statValue} for player ${teamName}`);
-
-                                    // Replace the record for the specific stat if the current statId matches a tracked stat and if the value
-                                    // is better than the current record for that stat.
-                                    if (categoryRecordsMetadata[statId] && categoryRecordsMetadata[statId].recordTotal < Number(statValue)) {
-                                        categoryRecordsMetadata[statId].recordTotal = Number(statValue);
-                                        categoryRecordsMetadata[statId].recordHolder = teamName;
-                                        // this._logger.debug(`replacing record for ${categoryRecordsMetadata[statId].name} with new highest value ${Number(statValue)} and new record holder ${teamName}`);
-                                    }
-                                });
-                            });
-                        }
-                    });
-
-                    // Return the updated categoryRecords information
-                    resolve(categoryRecordsMetadata);
-                });
-        });
     }
 
     /**
@@ -480,23 +295,12 @@ export class LiveStandingsHandlerService implements AsyncCommandHandler {
                                 return value;
                             });
 
-                            // TODO -- this is repeated code, make it a function
-                            // Build the week specifier string containing all weeks prior to the current.
-                            // This will be the value for the weeks sub-resource query param
-                            let allPriorWeeksQueryParam = '';
-                            for (let weekNum = startWeek; weekNum < currentWeek; weekNum++) {
-                                allPriorWeeksQueryParam += (weekNum < currentWeek - 1)
-                                    ? `${weekNum},`
-                                    : `${weekNum}`;
-                            }
-                            // --------------------------------------------------
-
                             this._logger.debug(`liveStandings with collisions before tie-breakers = ${JSON.stringify(liveStandings)}`);
 
                             // Make request for scoreboard data for all prior weeks than the current
                             return combineLatest([
                                 of(true), // isFurtherProcessingNeeded
-                                from(this._yahooFantasySportsApi.getLeagueScoreboardByWeek(access_token, allPriorWeeksQueryParam)), // scoreboardData for all prior weeks so we can handle collisions
+                                from(this._yahooFantasySportsApi.getLeagueScoreboardByWeek(access_token, this.allPriorWeeksQueryParam(Number(currentWeek), Number(currentWeek) - 1))), // scoreboardData for all prior weeks so we can handle collisions
                                 of(winPercentageCollisions), // pass along collisions for processing,
                                 of(liveStandings), // currently calculated live standings
                             ]);
@@ -529,6 +333,8 @@ export class LiveStandingsHandlerService implements AsyncCommandHandler {
                         resolve(null);
                     }
 
+                    this._logger.debug(`allPriorScoreboardData = ${JSON.stringify(allPriorScoreboardData)}`);
+                    this._logger.debug(`winPercentageCollisions = ${JSON.stringify(winPercentageCollisions)}`);
                     this._logger.debug(`calculated liveStandings = ${JSON.stringify(liveStandings)}`);
                     resolve(liveStandings);
 

@@ -8,10 +8,12 @@ import fs from "fs";
 export class WebComponentToImageBuilder {
     private readonly _logger: LoggerDelegate;
     private readonly _props: string;
+    private readonly _webComponentFileName: string;
 
     public constructor(webComponentFileName: string, props: any) {
         this._logger = new LoggerDelegate(WebComponentToImageBuilder.name);
         this._props = props;
+        this._webComponentFileName = webComponentFileName;
 
         const __dirname = dirname(fileURLToPath(import.meta.url));
         const pathToSvelteComponent = join(__dirname, `/web-components/svelte/src/${webComponentFileName}`);
@@ -26,7 +28,7 @@ export class WebComponentToImageBuilder {
             });
 
             this._logger.info(`Saving web component js to file system...`);
-            fs.writeFileSync(`${process.env.SERVER_FILE_TEMP_STORE}/component.js`, object.js.code, 'utf8');
+            fs.writeFileSync(`${process.env.SERVER_FILE_TEMP_STORE}/${webComponentFileName}-compiled.js`, object.js.code, 'utf8');
         } catch (e) {
             this._logger.error(e);
         }
@@ -35,7 +37,7 @@ export class WebComponentToImageBuilder {
     public async buildImage(desiredImageFileName: string) {
         try {
             this._logger.info(`Rendering web component html...`)
-            const component = await import(`${process.env.SERVER_FILE_TEMP_STORE}/component.js`);
+            const component = await import(`${process.env.SERVER_FILE_TEMP_STORE}/${this._webComponentFileName}-compiled.js`);
             const rendered = component.default.render(this._props);
             this._logger.debug(`renderedHtml = ${JSON.stringify(rendered)}`);
 

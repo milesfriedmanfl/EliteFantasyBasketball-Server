@@ -5,9 +5,11 @@ import {LiveStandingsHandlerService} from "./command-handlers/live-standings-han
 import type {DeferredCommand} from "./command-handlers/interfaces/command-handler.interfaces.js";
 import type { RequiringCleanup } from "../utils/interfaces/global.interfaces.js";
 import { RequiresCleanup } from '../utils/decorators/requiring-cleanup.decorator.js';
+import {CategoryRecordHoldersHandlerService} from "./command-handlers/category-record-holders-handler.service.js";
 
 export enum AsyncCommand {
-    LIVE_STANDINGS = 'live-standings'
+    LIVE_STANDINGS = 'live-standings',
+    CATEGORY_RECORD_HOLDERS = 'category-record-holders'
 }
 
 @Injectable()
@@ -17,7 +19,7 @@ export class DeferredResponseHandlerService implements RequiringCleanup {
     private readonly _handleDeferredResponse$ = new Subject<DeferredCommand>();
     private readonly _killService$ = new Subject<void>();
 
-    constructor(private readonly liveStandingsHandler: LiveStandingsHandlerService) {
+    constructor(private readonly liveStandingsHandler: LiveStandingsHandlerService, private readonly categoryRecordHoldersHandler: CategoryRecordHoldersHandlerService) {
         this._logger = new LoggerDelegate(DeferredResponseHandlerService.name);
 
         this.handleDeferredResponse$
@@ -29,6 +31,9 @@ export class DeferredResponseHandlerService implements RequiringCleanup {
                 switch(commandName) {
                     case AsyncCommand.LIVE_STANDINGS:
                         await liveStandingsHandler.handleAsyncCommand(interactionID);
+                        break;
+                    case AsyncCommand.CATEGORY_RECORD_HOLDERS:
+                        await categoryRecordHoldersHandler.handleAsyncCommand(interactionID);
                         break;
                     default:
                         this._logger.error(`Cannot handle an async command that is not recognized or doesn't exist.`);

@@ -5,7 +5,7 @@
   "main": "server-controller.ts",
   "scripts": {
     "precompile": "tsc",
-    "start-server": "NO_COLOR=true tsc && mkdir ./dist/logs/ && touch ./dist/logs/server.out && cp ./deferred-response-handler/web-component-to-image-builder/web-components/svelte/src/LiveStandings.svelte ./dist/deferred-response-handler/web-component-to-image-builder/web-components/svelte/src/LiveStandings.svelte && nohup node ./dist/server-controller.js > ./dist/logs/server.out 2>&1 &",
+    "start-server": "NO_COLOR=true tsc && mkdir ./dist/logs/ && touch ./dist/logs/server.out && cp ./deferred-response-handler/web-component-to-image-builder/web-components/svelte/src/*.svelte ./dist/deferred-response-handler/web-component-to-image-builder/web-components/svelte/src/ && nohup node ./dist/server-controller.js > ./dist/logs/server.out 2>&1 &",
     "stop-server": "rm -r /home/efb-admin/src/dist/ && rm server.lock && pkill -f server-controller.js",
     "check-server": "SERVER_PID=$(pgrep -f server-controller.js | grep -v $$); if [ -z \"$SERVER_PID\" ]; then echo 'Server is not running'; else echo \"Server is running with process ID $SERVER_PID\"; fi",
     "restart-server": "npm run stop-server && npm run start-server",
