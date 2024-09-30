@@ -8,7 +8,7 @@ The current MVP is set up to automate the deployment and destruction of AWS netw
 
 Here is an example of what this looks like in as an end user in my fantasy basketball discord:
 
-![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/master/src/assets/images/docs/live-standings-example.png)
+![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/main/src/assets/images/docs/live-standings-example.png)
 
 ## II. Project Directory Overview + Setup
 
@@ -137,7 +137,7 @@ Here is an example of how to run with some flags passed: <br><code>./create-or-d
 
 ### Network Architecture
 
-![Image of Network Architecture Diagram](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/master/src/assets/images/docs/elite-fantasy-basketball-network.jpeg)
+![Image of Network Architecture Diagram](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/main/src/assets/images/docs/elite-fantasy-basketball-network.jpeg)
 
 Above is a diagram depicting the resources that will be deployed as a result of the script running that provisions resources. This may seem like overkill as far as setup goes, but I intend to build this out over time with other commands that may contain sensitive data, and therefore I wanted the network to be security focused. 
 
@@ -157,7 +157,7 @@ My fantasy basketball league is head-to-head categories. Each week managers face
 
 The ```/live-standings``` command looks at the current scoreboard at any point during the week and tells you what the standings would look like if the week were to end today. It's frequently used on saturdays/sundays especially close to playoff time by managers competing for a final spot wishing to know where they stand and how many games back they'll be based on their current performance during the week. The red line denotes the cutoff between teams that would make playoffs (top 6) vs teams that wouldn't. (bottom 6)
 
-![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/master/src/assets/images/docs/live-standings-example.png)
+![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/main/src/assets/images/docs/live-standings-example.png)
 
 The ```/category-record-holders``` command is used to show which manager holds the season high in a week for each category. For example, it might say that in week 3 the manager's team scored X assists, which is higher than any other week. Last season we rewarded money for the season record holder for each category, and we likely will continue this trend next year.
 
