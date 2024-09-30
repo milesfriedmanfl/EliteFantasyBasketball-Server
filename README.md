@@ -7,7 +7,8 @@ Meant to be used in conjunction with an AWS account, this project bundle of setu
 The current MVP is set up to automate the deployment and destruction of AWS network resources and a server that can respond to two commands: ```/live-standings``` and ```/category-record-holders```. More are planned in the future. Additional details on what these do and how the server works can be found in subsequent sections. (section III and onwards)
 
 Here is an example of what this looks like in as an end user in my fantasy basketball discord:
-![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/src/assets/images/docs/live-standings-example.png)
+
+![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/master/src/assets/images/docs/live-standings-example.png)
 
 ## II. Project Directory Overview + Setup
 
