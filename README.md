@@ -2,7 +2,7 @@
 
 ## I. About
 
-Meant to be used in conjunction with an AWS account, this project bundle of setup scripts to create, deploy, and manage a fantasy-basketball backend server, which uses discord as a front end to accept and respond to commands from users to query and display data pertaining to my yahoo fantasy basketball league. This not something I plan to monetize, or use anywhere but in my own fantasy league, therefore it's likely that all future commands, (like the current ones) will only be compatible with yahoo's fantasy basketball platform. 
+Meant to be used in conjunction with an AWS account, this project bundle of setup scripts to create, deploy, and manage a fantasy-basketball backend server, which uses discord as a front end to accept and respond to commands from users to query and display data pertaining to a yahoo fantasy basketball league. This not something I plan to monetize, or use anywhere but in my own fantasy league, therefore it's likely that all future commands, (like the current ones) will only be compatible with yahoo's fantasy basketball platform. 
 
 The current MVP is set up to automate the deployment and destruction of AWS network resources and a server that can respond to two commands: ```/live-standings``` and ```/category-record-holders```. More are planned in the future. Additional details on what these do and how the server works can be found in subsequent sections. (section III and onwards)
 
