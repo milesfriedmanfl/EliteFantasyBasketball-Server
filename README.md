@@ -161,7 +161,7 @@ The ```/live-standings``` command looks at the current scoreboard at any point d
 
 The ```/category-record-holders``` command is used to show which manager holds the season high in a week for each category. For example, it might say that in week 3 the manager's team scored X assists, which is higher than any other week. Last season we rewarded money for the season record holder for each category, and we likely will continue this trend next year.
 
-#### Axillary Server Code Functions
+#### Auxiliary Server Code Functions
 
 Going back to the server there are two additional modules worth mentioning:
 
