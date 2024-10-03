@@ -21,9 +21,7 @@ The project is broken down into setup and src directories. The ```/setup``` dire
 
 2. **An AWS Account and AWS Credentials** - I'm using AWS, therefore the Terraform files that provision network resources do so within AWS. You'll need an AWS account with which you'll be able to deploy the network resources to. You'll also need to download AWS credentials from the AWS management console locally, so that they can be passed into the setup scripts and used for provisioning under your account. This can be done from the AWS Management Console.
 
-<p style="margin-left: 4ch; display: block;">
-    <strong>[Note:]</strong> no need to worry about the CLI or any other dependencies here such as terraform on your workstation, all of that is taken care of for you in the dockerfiles and abstracted away.
-</p>
+&nbsp;&nbsp;&nbsp;&nbsp;[Note:]</strong> no need to worry about the CLI or any other dependencies here such as terraform on your workstation, all of that is taken care of for you in the dockerfiles and abstracted away.
 
 ### Setup:
 
@@ -160,6 +158,8 @@ The ```/live-standings``` command looks at the current scoreboard at any point d
 ![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/main/src/assets/images/docs/live-standings-example.png)
 
 The ```/category-record-holders``` command is used to show which manager holds the season high in a week for each category. For example, it might say that in week 3 the manager's team scored X assists, which is higher than any other week. Last season we rewarded money for the season record holder for each category, and we likely will continue this trend next year.
+
+![Image of UI Screen Capture](https://github.com/milesfriedmanfl/EliteFantasyBasketball-Server/blob/main/src/assets/images/docs/category-record-holders.png)
 
 #### Auxiliary Server Code Functions
 
